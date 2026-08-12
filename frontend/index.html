@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Chatbot — Project 4</title>
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --surface: #1a1a22;
+      --surface-2: #252530;
+      --text: #e8e8ec;
+      --text-muted: #9090a0;
+      --accent: #7c5cff;
+      --accent-2: #a78bfa;
+      --border: #2e2e3a;
+      --radius: 14px;
+      --shadow: 0 8px 32px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+    .container {
+      width: 100%;
+      max-width: 720px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .settings {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .settings label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .settings input[type="text"] {
+      flex: 1;
+      min-width: 220px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .settings input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+    .chat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      height: 520px;
+      overflow: hidden;
+    }
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .msg {
+      max-width: 85%;
+      padding: 12px 16px;
+      border-radius: 14px;
+      line-height: 1.55;
+      font-size: 0.95rem;
+      animation: popIn 0.25s ease;
+      white-space: pre-wrap;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, var(--accent), #5b3fd9);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 4px;
+    }
+    .msg.bot .source-toggle {
+      margin-top: 10px;
+      font-size: 0.78rem;
+      color: var(--accent-2);
+      cursor: pointer;
+      user-select: none;
+    }
+    .msg.bot .sources {
+      display: none;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .msg.bot .sources.open { display: block; }
+    .msg.bot .source-chunk {
+      background: var(--bg);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+      line-height: 1.45;
+    }
+    .msg.bot .source-chunk b {
+      color: var(--accent-2);
+    }
+    .input-area {
+      display: flex;
+      gap: 10px;
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .input-area input {
+      flex: 1;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-area input:focus {
+      border-color: var(--accent);
+    }
+    .input-area input:disabled {
+      opacity: 0.5;
+    }
+    .input-area button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0 22px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.2s;
+    }
+    .input-area button:hover:not(:disabled) {
+      background: #6a4ce0;
+      transform: translateY(-1px);
+    }
+    .input-area button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .typing {
+      align-self: flex-start;
+      color: var(--text-muted);
+      font-style: italic;
+      font-size: 0.9rem;
+      padding: 4px 8px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 3px 8px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+    }
+    .badge.user { background: rgba(255,255,255,0.15); color: #fff; }
+    .badge.bot { background: rgba(124,92,255,0.15); color: var(--accent-2); }
+    footer {
+      margin-top: 24px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    .error { color: #ff6b6b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>📄 RAG Chatbot</h1>
+      <p>Ask questions about your documents. Powered by FAISS + Groq LLaMA 3.1</p>
+    </header>
+
+    <div class="settings">
+      <label for="apiUrl">Backend URL:</label>
+      <input type="text" id="apiUrl" placeholder="https://your-backend.onrender.com" />
+    </div>
+
+    <div class="chat">
+      <div class="messages" id="messages"></div>
+      <div class="input-area">
+        <input type="text" id="queryInput" placeholder="Ask something about the lease..." />
+        <button id="sendBtn" onclick="send()">Send</button>
+      </div>
+    </div>
+
+    <footer>
+      Project 4 Portfolio • Hugging Face Static Space Frontend
+    </footer>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById("messages");
+    const inputEl = document.getElementById("queryInput");
+    const btnEl = document.getElementById("sendBtn");
+    const apiUrlEl = document.getElementById("apiUrl");
+
+    // Load saved backend URL
+    apiUrlEl.value = localStorage.getItem("rag_backend_url") || "";
+    apiUrlEl.addEventListener("change", () => {
+      localStorage.setItem("rag_backend_url", apiUrlEl.value.trim());
+    });
+
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") send();
+    });
+
+    function append(text, sender, sources = null) {
+      const div = document.createElement("div");
+      div.className = `msg ${sender}`;
+
+      const badge = document.createElement("div");
+      badge.className = `badge ${sender}`;
+      badge.textContent = sender === "user" ? "You" : "Assistant";
+      div.appendChild(badge);
+
+      const body = document.createElement("div");
+      body.textContent = text;
+      div.appendChild(body);
+
+      if (sources && sources.length) {
+        const toggle = document.createElement("div");
+        toggle.className = "source-toggle";
+        toggle.textContent = "📎 Show retrieved chunks (" + sources.length + ")";
+        const sourcesDiv = document.createElement("div");
+        sourcesDiv.className = "sources";
+        sources.forEach((src, i) => {
+          const chunk = document.createElement("div");
+          chunk.className = "source-chunk";
+          chunk.innerHTML = "<b>Chunk " + (i + 1) + ":</b> " + src.substring(0, 400) + (src.length > 400 ? "…" : "");
+          sourcesDiv.appendChild(chunk);
+        });
+        toggle.onclick = () => {
+          const open = sourcesDiv.classList.toggle("open");
+          toggle.textContent = open
+            ? "📎 Hide retrieved chunks (" + sources.length + ")"
+            : "📎 Show retrieved chunks (" + sources.length + ")";
+        };
+        div.appendChild(toggle);
+        div.appendChild(sourcesDiv);
+      }
+
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function setLoading(isLoading) {
+      inputEl.disabled = isLoading;
+      btnEl.disabled = isLoading;
+      if (isLoading) {
+        const typing = document.createElement("div");
+        typing.className = "typing";
+        typing.id = "typing";
+        typing.textContent = "Thinking…";
+        messagesEl.appendChild(typing);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+      } else {
+        const t = document.getElementById("typing");
+        if (t) t.remove();
+      }
+    }
+
+    async function send() {
+      const query = inputEl.value.trim();
+      if (!query) return;
+
+      const baseUrl = apiUrlEl.value.trim().replace(/\/$/, "");
+      if (!baseUrl) {
+        alert("Please enter your backend URL in the settings box above.");
+        apiUrlEl.focus();
+        return;
+      }
+
+      append(query, "user");
+      inputEl.value = "";
+      setLoading(true);
+
+      try {
+        const res = await fetch(baseUrl + "/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: query, k: 3 })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || "HTTP " + res.status);
+        }
+
+        const data = await res.json();
+        append(data.answer, "bot", data.sources);
+      } catch (err) {
+        append("Error: " + err.message + "\n\nMake sure your backend is running and CORS is enabled.", "bot");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // Welcome message
+    append("Hi! I\'m your document assistant. Ask me anything about the loaded documents.", "bot");
+  </script>
+</body>
+</html>
